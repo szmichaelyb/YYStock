@@ -2,8 +2,8 @@
 //  YYTimeLineModel.h
 //  投融宝
 //
-//  Created by yate1996 on 16/10/10.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/10.
+//  Copyright © 2016年 yeeyuntech. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>

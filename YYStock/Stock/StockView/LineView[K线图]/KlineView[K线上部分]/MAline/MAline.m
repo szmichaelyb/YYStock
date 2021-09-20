@@ -1,9 +1,9 @@
 //
 //  MAline.m
-//  YYStock  ( https://github.com/yate1996 )
+//  YYStock  ( https://github.com/WillkYang )
 //
-//  Created by yate1996 on 16/10/8.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/8.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #import "MAline.h"
@@ -17,6 +17,7 @@
 
 @property (nonatomic, strong) NSArray *MAPositions;
 
+@property (nonatomic, strong) UIColor *lineColor;
 @end
 
 @implementation MAline
@@ -34,14 +35,19 @@
     return self;
 }
 
+- (void)drawRect:(CGRect)rect {
+    [super drawRect: rect];
+
+}
+
 - (void)drawWithColor:(UIColor *)lineColor maPositions:(NSArray *)maPositions {
     _MAPositions = maPositions;
-
+    _lineColor = lineColor;
     if(!self.context || !self.MAPositions) {
         return;
     }
     
-    CGContextSetStrokeColorWithColor(self.context, lineColor.CGColor);
+    CGContextSetStrokeColorWithColor(self.context, self.lineColor.CGColor);
     
     CGContextSetLineWidth(self.context, YYStockMALineLineWidth);
     

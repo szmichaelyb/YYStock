@@ -1,9 +1,9 @@
 //
 //  YYStockConstant.h
-//  YYStock  ( https://github.com/yate1996 )
+//  YYStock  ( https://github.com/WillkYang )
 //
-//  Created by yate1996 on 16/10/5.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/5.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #ifndef YYStockConstant_h
@@ -11,6 +11,11 @@
 
 
 #endif /* YYStockConstant_h */
+
+/**
+ *  K线最小的厚度
+ */
+#define YYStockLineMinThick 0.5
 
 
 /**
@@ -21,7 +26,7 @@
 /**
  *  K线图最小的宽度
  */
-#define YYStockLineMinWidth 2
+#define YYStockLineMinWidth 3
 
 /**
  *  时分线的宽度
@@ -114,7 +119,7 @@
 /**
  *  K线的缩放因子
  */
-#define YYStockLineScaleFactor 0.03
+#define YYStockLineScaleFactor 0.06
 
 //Kline种类
 typedef NS_ENUM(NSInteger, YYStockType) {

@@ -1,5 +1,5 @@
 /*
- 作者：  yate1996
+ 作者：  WillkYang
  文件：  UIColor+YYStockTheme.m
  版本：  1.0 <2016.10.05>
  */
@@ -79,7 +79,7 @@
  *  长按出现的圆点的颜色
  */
 +(UIColor *)YYStock_selectedPointColor {
-    return [UIColor YYStock_decreaseColor];
+    return [UIColor YYStock_increaseColor                                                                                  ];
 }
 
 /**
@@ -117,20 +117,18 @@
     return [UIColor colorWithHex:0x60CFFF alpha:0.1f];
 }
 
-
-
 /**
  *  涨的颜色
  */
 +(UIColor *)YYStock_increaseColor {
-    return [UIColor colorWithHex:0x41CB47];
+    return [UIColor colorWithHex:0xE74C3C];
 }
 
 /**
  *  跌的颜色
  */
 +(UIColor *)YYStock_decreaseColor {
-    return [UIColor colorWithHex:0xE74C3C];
+    return [UIColor colorWithHex:0x41CB47];
 }
 
 

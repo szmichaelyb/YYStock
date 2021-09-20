@@ -1,9 +1,9 @@
 //
 //  YYStock.m
-//  YYStock  ( https://github.com/yate1996 )
+//  YYStock  ( https://github.com/WillkYang )
 //
-//  Created by yate1996 on 16/10/5.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/5.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #import "YYStock.h"
@@ -13,6 +13,7 @@
 #import "YYStockView_TimeLine.h"
 #import "UIColor+YYStockTheme.h"
 #import "YYStockViewMaskView.h"
+#import "YYStockVariable.h"
 #import <Masonry/Masonry.h>
 @interface YYStock()<YYTopBarViewDelegate, YYStockViewLongPressProtocol, YYStockViewTimeLinePressProtocol>
 /**
@@ -104,6 +105,7 @@
     NSInteger index = self.currentIndex;
     if ([self.stockViewArray[index] isKindOfClass:[YYStockView_Kline class]]) {
         YYStockView_Kline *stockView = (YYStockView_Kline *)(self.stockViewArray[index]);
+        
         [stockView reDrawWithLineModels:[self.dataSource YYStock:self stockDatasOfIndex:index]];
     }
     if ([self.stockViewArray[index] isKindOfClass:[YYStockView_TimeLine class]]) {

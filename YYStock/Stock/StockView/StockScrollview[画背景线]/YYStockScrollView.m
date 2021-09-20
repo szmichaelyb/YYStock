@@ -1,9 +1,9 @@
 //
 //  YYStockScrollView.m
-//  YYStock  ( https://github.com/yate1996 )
+//  YYStock  ( https://github.com/WillkYang )
 //
-//  Created by yate1996 on 16/10/7.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/7.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #import "YYStockScrollView.h"
@@ -55,10 +55,20 @@
         
         CGContextSetLineDash(ctx, 0, NULL, 0);
         CGContextSetStrokeColorWithColor(ctx, [UIColor YYStock_bgLineColor].CGColor);
-        CGContextSetLineWidth(ctx, 1.f);
+        CGContextSetLineWidth(ctx, .5f);
         const CGPoint line2[] = {CGPointMake(0, self.frame.size.height * [YYStockVariable lineMainViewRadio] ),CGPointMake(self.frame.size.width, self.frame.size.height * [YYStockVariable lineMainViewRadio])};
         CGContextStrokeLineSegments(ctx, line2, 2);
-
+        
+        
+//        CGContextMoveToPoint(ctx, 0, self.frame.size.height * ([YYStockVariable lineMainViewRadio] + [YYStockVariable volumeViewRadio]) - 1);
+//        CGContextAddLineToPoint(ctx, self.frame.size.width, self.frame.size.height * ([YYStockVariable lineMainViewRadio] + [YYStockVariable volumeViewRadio]) - 1);
+//        CGContextStrokePath(ctx);
+//        const CGPoint line3[] = {CGPointMake(0, lineMaxY ),CGPointMake(self.frame.size.width, lineMaxY )};
+//        CGContextStrokeLineSegments(ctx, line3, 2);
+        CGFloat lineMaxY = self.frame.size.height - YYStockLineDayHeight - YYStockLineVolumeViewMinY;
+        CGContextMoveToPoint(ctx, 0, lineMaxY );
+        CGContextAddLineToPoint(ctx, self.frame.size.width, lineMaxY );
+        CGContextStrokePath(ctx);
     }
 }
 

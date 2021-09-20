@@ -1,21 +1,17 @@
 //
 //  YYKline.h
-//  YYStock  ( https://github.com/yate1996 )
+//  YYStock  ( https://github.com/WillkYang )
 //
-//  Created by yate1996 on 16/10/7.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/7.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #import <UIKit/UIKit.h>
-#import "YYLinePositionModel.h"
+#import "YYStockDataProtocol.h"
+@class YYLinePositionModel;
 @interface YYKline : UIView
 
-/**
- *  K线的位置model
- */
-@property (nonatomic, strong) YYLinePositionModel *kLinePositionModel;
-
-- (instancetype)initWithContext:(CGContextRef)context;
+- (instancetype)initWithContext:(CGContextRef)context drawModels:(NSArray <id<YYLineDataModelProtocol>>*)drawLineModels linePositionModels:(NSArray <YYLinePositionModel *>*)linePositionModels;
 
 - (void)draw;
 

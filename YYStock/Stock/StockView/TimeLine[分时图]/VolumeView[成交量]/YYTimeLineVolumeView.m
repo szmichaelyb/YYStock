@@ -1,9 +1,9 @@
 //
 //  YYTimeLineVolumeView.m
-//  YYStock  ( https://github.com/yate1996 )
+//  YYStock  ( https://github.com/WillkYang )
 //
-//  Created by yate1996 on 16/10/10.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/10.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #import "YYTimeLineVolumeView.h"
@@ -25,10 +25,14 @@
         return;
     }
     
+    CGFloat lineMaxY = self.frame.size.height - YYStockLineDayHeight - YYStockLineVolumeViewMinY;
+    
     //绘制背景色
     YYVolumePositionModel *lastModel = self.drawPositionModels.lastObject;
     CGContextSetFillColorWithColor(ctx, [UIColor YYStock_timeLineBgColor].CGColor);
-    CGContextFillRect(ctx, CGRectMake(0, 0, lastModel.EndPoint.x, self.frame.size.height - YYStockLineDayHeight));
+    CGContextFillRect(ctx, CGRectMake(0, 0, lastModel.EndPoint.x, lineMaxY));
+    
+
     
     [self.drawPositionModels enumerateObjectsUsingBlock:^(YYVolumePositionModel  *_Nonnull pModel, NSUInteger idx, BOOL * _Nonnull stop) {
         
@@ -89,7 +93,7 @@
         CGFloat xPosition = startX + idx * ([YYStockVariable timeLineVolumeWidth] + YYStockTimeLineViewVolumeGap);
         CGFloat yPosition = ABS(maxY - (model.Volume - minValue)/unitValue);
         
-        CGPoint startPoint = CGPointMake(xPosition, ABS(yPosition - maxY) > 1 ? yPosition : maxY - 1);
+        CGPoint startPoint = CGPointMake(xPosition, ABS(yPosition - maxY) > 1 ? yPosition : maxY );
         CGPoint endPoint = CGPointMake(xPosition, maxY);
         
         NSString *dayDesc = model.isShowTimeDesc ? model.TimeDesc : @"";

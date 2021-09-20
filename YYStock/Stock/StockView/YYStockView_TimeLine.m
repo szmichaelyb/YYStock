@@ -1,9 +1,9 @@
 //
 //  YYStockView_TimeLine.m
-//  YYStock  ( https://github.com/yate1996 )
+//  YYStock  ( https://github.com/WillkYang )
 //
-//  Created by yate1996 on 16/10/10.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/10.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #import "YYStockView_TimeLine.h"
@@ -108,7 +108,33 @@
     _drawLineModels = timeLineModels;
     _fiveRecordModel = fiveRecordModel;
     _isShowFiveRecord = isShowFiveRecord;
+    [self layoutIfNeeded];
+    [self updateScrollViewContentWidth];
     [self setNeedsDisplay];
+}
+
+
+- (void)drawRect:(CGRect)rect {
+    [super drawRect:rect];
+    if (self.drawLineModels.count > 0) {
+        if (!self.maskView || self.maskView.isHidden) {
+            //更新绘制的数据源
+            [self updateDrawModels];
+            //绘制K线上部分
+            self.drawLinePositionModels = [self.timeLineView drawViewWithXPosition:0 drawModels:self.drawLineModels maxValue:maxValue minValue:minValue];
+            //绘制成交量
+            [self.volumeView drawViewWithXPosition:0 drawModels:self.drawLineModels];
+            //更新背景线
+            self.stockScrollView.isShowBgLine = YES;
+            [self.stockScrollView setNeedsDisplay];
+            //更新五档图
+            if (self.isShowFiveRecord) {
+                [self.fiveRecordView reDrawWithFiveRecordModel:self.fiveRecordModel];
+            }
+        }
+        //绘制左侧文字部分
+        [self drawLeftRightDesc];
+    }
 }
 
 - (void)showTouchView:(NSSet<UITouch *> *)touches {
@@ -116,6 +142,7 @@
     CGPoint location = [touches.anyObject locationInView:self.stockScrollView];
     if (location.x < 0 || location.x > self.stockScrollView.contentSize.width) return;
     if(ABS(oldPositionX - location.x) < ([YYStockVariable timeLineVolumeWidth]+ YYStockTimeLineViewVolumeGap)/2) return;
+    
     oldPositionX = location.x;
     NSInteger startIndex = (NSInteger)(oldPositionX / (YYStockTimeLineViewVolumeGap + [YYStockVariable timeLineVolumeWidth]));
     
@@ -169,29 +196,7 @@
     [self hideTouchView];
 }
 
-- (void)drawRect:(CGRect)rect {
-    [super drawRect:rect];
-    if (self.drawLineModels.count > 0) {
-        [self updateScrollViewContentWidth];
-        if (!self.maskView || self.maskView.isHidden) {
-            //更新绘制的数据源
-            [self updateDrawModels];
-            //绘制K线上部分
-            self.drawLinePositionModels = [self.timeLineView drawViewWithXPosition:0 drawModels:self.drawLineModels maxValue:maxValue minValue:minValue];
-            //绘制成交量
-            [self.volumeView drawViewWithXPosition:0 drawModels:self.drawLineModels];
-            //更新背景线
-            self.stockScrollView.isShowBgLine = YES;
-            [self.stockScrollView setNeedsDisplay];
-            //更新五档图
-            if (self.isShowFiveRecord) {
-                [self.fiveRecordView reDrawWithFiveRecordModel:self.fiveRecordModel];
-            }
-        }
-        //绘制左侧文字部分
-        [self drawLeftRightDesc];
-    }
-}
+
 
 /**
  初始化子View
@@ -217,7 +222,7 @@
     
 
     
-    //加载LineView
+    //加载TimeLineView
     _timeLineView = [YYTimeLineView new];
     _timeLineView.backgroundColor = [UIColor clearColor];
     [_stockScrollView.contentView addSubview:_timeLineView];
@@ -238,9 +243,6 @@
         make.top.equalTo(_timeLineView.mas_bottom);
         make.height.equalTo(_stockScrollView.contentView).multipliedBy(1-[YYStockVariable lineMainViewRadio]);
     }];
-    
-
-    
 }
 
 - (void)initUI_stockScrollView {
@@ -273,6 +275,11 @@
     CGFloat leftGap = YYStockTimeLineViewLeftGap + 3;
     CGFloat topOffset = -textSize.height/2.f - 3;
     CGFloat creasePercent = (maxValue / ((maxValue + minValue)/2.f)) * 100 - 100;
+    
+    if (isnan(creasePercent) || creasePercent == INFINITY) {
+        creasePercent = 0.000001;
+    }
+    
     //顶部间距
     for (int i = 0; i < 3; i++) {
         NSString *text = [NSString stringWithFormat:@"%.2f",maxValue - unitValue * i];
@@ -302,7 +309,7 @@
             descText = @"万手";
         }
     } else {
-        text = [NSString stringWithFormat:@"%.2f",volume];
+        text = [NSString stringWithFormat:@"%.0f",volume];
         descText = @"手";
     }
     [text drawInRect:CGRectMake(leftGap, YYStockScrollViewTopGap + self.stockScrollView.frame.size.height * (1 - [YYStockVariable volumeViewRadio]), 60, 20) withAttributes:attribute];
@@ -318,11 +325,32 @@
     CGFloat average = [self.drawLineModels.firstObject AvgPrice];
     maxValue = [[[self.drawLineModels valueForKeyPath:@"Price"] valueForKeyPath:@"@max.floatValue"] floatValue];
     minValue = [[[self.drawLineModels valueForKeyPath:@"Price"] valueForKeyPath:@"@min.floatValue"] floatValue];
-    if (ABS(maxValue - average) > ABS(average - minValue)) {
-        minValue = 2 * average - maxValue;
+    
+    
+    if (maxValue == minValue && maxValue == average) {
+        //处理特殊情况
+        if (maxValue == 0) {
+            
+            maxValue = 0.00001;
+            minValue = -0.00001;
+        } else {
+            maxValue = maxValue * 2;
+            minValue = 0.01;
+        }
     } else {
-        maxValue = 2 * average - minValue;
+        if (ABS(maxValue - average) >= ABS(average - minValue)) {
+            minValue = 2 * average - maxValue;
+        }
+        if (ABS(maxValue - average) < ABS(average - minValue)) {
+            maxValue = 2 * average - minValue;
+        }
     }
+    
+//    if (ABS(maxValue - average) >= ABS(average - minValue)) {
+//        minValue = 2 * average - maxValue;
+//    } else {
+//        maxValue = 2 * average - minValue;
+//    }
 }
 
 - (void)updateScrollViewContentWidth {
@@ -332,7 +360,6 @@
     //9:30-11:30/12:00-15:00一共240分钟
     NSInteger minCount = 240;
     [YYStockVariable setTimeLineVolumeWidth:((self.stockScrollView.bounds.size.width - (minCount - 1) * YYStockTimeLineViewVolumeGap) / minCount)];
-    
 }
 
 
@@ -351,7 +378,6 @@
         [lineView mas_makeConstraints:^(MASConstraintMaker *make) {
             make.edges.equalTo(view).insets(UIEdgeInsetsMake(2, 0, 2, 0));
         }];
-
         return view;
     } else {
         return nil;

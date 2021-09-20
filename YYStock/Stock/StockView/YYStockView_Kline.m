@@ -1,9 +1,9 @@
 //
 //  YYStockView_Kline.m
-//  YYStock  ( https://github.com/yate1996 )
+//  YYStock  ( https://github.com/WillkYang )
 //
-//  Created by yate1996 on 16/10/5.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/5.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #import "YYStockView_Kline.h"
@@ -55,9 +55,9 @@
 
 #pragma mark - 页面上显示的数据
     //图表最大的价格
-    NSInteger maxValue;
+    CGFloat maxValue;
     //图表最小的价格
-    NSInteger minValue;
+    CGFloat minValue;
     //图表最大的成交量
     NSInteger volumeValue;
     //当前长按选中的model
@@ -76,7 +76,6 @@
     if (self) {
         _lineModels = lineModels;
         [self initUI];
-        [self scrollToBottom];
     }
     return self;
 }
@@ -84,7 +83,6 @@
 - (void)drawRect:(CGRect)rect {
     [super drawRect:rect];
     if (self.lineModels.count > 0) {
-        [self updateScrollViewContentWidth];
         if (!self.maskView || self.maskView.isHidden) {
             //更新绘制的数据源
             [self updateDrawModels];
@@ -113,16 +111,13 @@
  */
 - (void)reDrawWithLineModels:(NSArray <id<YYLineDataModelProtocol>>*) lineModels {
     _lineModels = lineModels;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self layoutIfNeeded];
-        [self setNeedsDisplay];
-    });
-}
-
-- (void)layoutSubviews {
-    [super layoutSubviews];
+    
+//    [YYStockVariable setLineWith:(self.stockScrollView.bounds.size.width / lineModels.count) - [YYStockVariable lineGap]];
+    [self layoutIfNeeded];
+    [self updateScrollViewContentWidth];
+    [self setNeedsDisplay];
     if (self.lineModels.count > 0) {
-        [self scrollToBottom];
+        self.stockScrollView.contentOffset = CGPointMake(self.stockScrollView.contentSize.width - self.stockScrollView.bounds.size.width, self.stockScrollView.contentOffset.y);
     }
 }
 
@@ -145,6 +140,7 @@
     //加载VolumeView
     _volumeView = [YYKlineVolumeView new];
     _volumeView.backgroundColor = [UIColor clearColor];
+    _volumeView.parentScrollView = _stockScrollView;
     [_stockScrollView.contentView addSubview:_volumeView];
     [_volumeView mas_makeConstraints:^(MASConstraintMaker *make) {
         make.left.right.bottom.equalTo(_stockScrollView.contentView);
@@ -175,8 +171,6 @@
     UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc]initWithTarget:self action:@selector(event_longPressAction:)];
     [_stockScrollView addGestureRecognizer:longPress];
 }
-
-
 
 /**
  scrollView滑动重绘页面
@@ -226,7 +220,7 @@
             [descText drawInRect:CGRectMake(YYStockScrollViewLeftGap - textSize1.width - 5, YYStockScrollViewTopGap + 15 + self.stockScrollView.frame.size.height * (1 - [YYStockVariable volumeViewRadio]), 60, 20) withAttributes:attribute];
         }
     } else {
-        NSString *text = [NSString stringWithFormat:@"%.2f",volume];
+        NSString *text = [NSString stringWithFormat:@"%.0f",volume];
         CGSize textSize = [self rectOfNSString:text attribute:attribute].size;
         [text drawInRect:CGRectMake(YYStockScrollViewLeftGap - textSize.width - 5, YYStockScrollViewTopGap + self.stockScrollView.frame.size.height * (1 - [YYStockVariable volumeViewRadio]), 60, 20) withAttributes:attribute];
         NSString *descText = @"手";
@@ -273,13 +267,16 @@
     [ma20Text drawInRect:drawRect withAttributes:attribute];
 
 }
+
 /**
  更新需要绘制的数据源
  */
 - (void)updateDrawModels {
 
     NSInteger startIndex = [self startIndex];
-    NSInteger drawLineCount = (self.stockScrollView.frame.size.width - [YYStockVariable lineGap]) / ([YYStockVariable lineGap] +  [YYStockVariable lineWidth]);
+    NSInteger drawLineCount = (self.stockScrollView.frame.size.width) / ([YYStockVariable lineGap] +  [YYStockVariable lineWidth]);
+//    NSInteger drawLineCount = (self.stockScrollView.frame.size.width - [YYStockVariable lineGap]) / ([YYStockVariable lineGap] +  [YYStockVariable lineWidth]);
+
     
     [self.drawLineModels removeAllObjects];
     NSInteger length = startIndex+drawLineCount < self.lineModels.count ? drawLineCount+1 : self.lineModels.count - startIndex;
@@ -289,10 +286,25 @@
     selectedModel = self.drawLineModels.lastObject;
     
     //更新最大值最小值-价格
-    CGFloat min =  [[[self.drawLineModels valueForKeyPath:@"Low"] valueForKeyPath:@"@min.floatValue"] floatValue];
     CGFloat max =  [[[self.drawLineModels valueForKeyPath:@"High"] valueForKeyPath:@"@max.floatValue"] floatValue];
-    CGFloat average = ((int)((min+max) / 2) / 5) * 5;
-    maxValue =  (((int)max / 5) + 2) * 5;
+    CGFloat ma5max = [[[self.drawLineModels valueForKeyPath:@"MA5"] valueForKeyPath:@"@max.floatValue"] floatValue];
+    CGFloat ma10max = [[[self.drawLineModels valueForKeyPath:@"MA10"] valueForKeyPath:@"@max.floatValue"] floatValue];
+    CGFloat ma20max = [[[self.drawLineModels valueForKeyPath:@"MA20"] valueForKeyPath:@"@max.floatValue"] floatValue];
+    
+    __block CGFloat min =  [[[self.drawLineModels valueForKeyPath:@"Low"] valueForKeyPath:@"@min.floatValue"] floatValue];
+    [self.drawLineModels enumerateObjectsUsingBlock:^(id<YYLineDataModelProtocol>  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        CGFloat ma5value = [[obj MA5] floatValue];
+        CGFloat ma10value = [[obj MA10] floatValue];
+        CGFloat ma20value = [[obj MA20] floatValue];
+        if ( ma5value > 0 && ma5value < min ) min = ma5value;
+        if ( ma10value > 0 && ma10value < min ) min = ma10value;
+        if ( ma20value > 0 && ma20value < min ) min = ma20value;
+    }];
+
+    max = MAX(MAX(MAX(ma5max, ma10max), ma20max), max);
+
+    CGFloat average = (min+max) / 2;
+    maxValue = max;
     minValue = average * 2 - maxValue;
 }
 
@@ -312,7 +324,10 @@
 
 - (NSInteger)startIndex {
     CGFloat offsetX = self.stockScrollView.contentOffset.x < 0 ? 0 : self.stockScrollView.contentOffset.x;
-    NSUInteger leftCount = ABS(offsetX - [YYStockVariable lineGap]) / ([YYStockVariable lineGap] + [YYStockVariable lineWidth]);
+//    NSUInteger leftCount = ABS(offsetX - [YYStockVariable lineGap]) / ([YYStockVariable lineGap] + [YYStockVariable lineWidth]);
+//    NSUInteger leftCount = ceilf((offsetX - [YYStockVariable lineGap]) / ([YYStockVariable lineGap] + [YYStockVariable lineWidth]));
+    NSUInteger leftCount = ABS(offsetX) / ([YYStockVariable lineGap] + [YYStockVariable lineWidth]);
+
     if (leftCount > self.lineModels.count) {
         leftCount = self.lineModels.count - 1;
     }
@@ -326,40 +341,36 @@
     if(kLineViewWidth < self.stockScrollView.bounds.size.width) {
         kLineViewWidth = self.stockScrollView.bounds.size.width;
     }
-
-    [self mas_updateConstraints:^(MASConstraintMaker *make) {
-        make.width.equalTo(@(kLineViewWidth));
-    }];
     
     //更新scrollview的contentsize
     self.stockScrollView.contentSize = CGSizeMake(kLineViewWidth, self.stockScrollView.contentSize.height);
     return kLineViewWidth;
 }
 
-- (void)scrollToBottom {
-    [self updateScrollViewContentWidth];
-    if (self.stockScrollView.contentSize.width > self.stockScrollView.bounds.size.width) {
-        self.stockScrollView.contentOffset = CGPointMake(self.stockScrollView.contentSize.width - self.stockScrollView.bounds.size.width,self.stockScrollView.contentOffset.y);
-    }
-}
-
 - (void)event_longPressAction:(UILongPressGestureRecognizer *)longPress {
+    NSLog(@"进入长按");
+    
+    
+    NSLog(@"%f", [longPress locationInView:self.stockScrollView].x - self.stockScrollView.contentOffset.x);
+
+    
     static CGFloat oldPositionX = 0;
-    if(UIGestureRecognizerStateChanged == longPress.state || UIGestureRecognizerStateBegan == longPress.state)
-    {
+    if(UIGestureRecognizerStateChanged == longPress.state || UIGestureRecognizerStateBegan == longPress.state) {
+        
         CGPoint location = [longPress locationInView:self.stockScrollView];
         if (location.x < 0 || location.x > self.stockScrollView.contentSize.width) return;
-        if(ABS(oldPositionX - location.x) < ([YYStockVariable lineWidth] + [YYStockVariable lineGap])/2) return;
         
         //暂停滑动
         oldPositionX = location.x;
-        NSInteger startIndex = (NSInteger)((oldPositionX - [self xPosition]) / ([YYStockVariable lineGap] + [YYStockVariable lineWidth]));
-        if (startIndex >= 0 && startIndex <self.drawLineModels.count) {
-
-        }
+        NSInteger startIndex = (NSInteger)((oldPositionX - [self xPosition] + ([YYStockVariable lineGap] + [YYStockVariable lineWidth])/2.f) / ([YYStockVariable lineGap] + [YYStockVariable lineWidth]));
         
         if (startIndex < 0) startIndex = 0;
         if (startIndex >= self.drawLineModels.count) startIndex = self.drawLineModels.count - 1;
+        
+        //长按位置没有数据则退出
+        if (startIndex < 0) {
+            return;
+        }
         
         if (!self.maskView) {
             _maskView = [YYKlineMaskView new];
@@ -382,10 +393,11 @@
         }
     }
     
-    if(longPress.state == UIGestureRecognizerStateEnded)
+    if(longPress.state == UIGestureRecognizerStateEnded || longPress.state == UIGestureRecognizerStateCancelled || longPress.state == UIGestureRecognizerStateFailed)
     {
         //恢复scrollView的滑动
         selectedModel = self.drawLineModels.lastObject;
+        oldPositionX = 0.f;
         [self setNeedsDisplay];
         self.maskView.hidden = YES;
         if (self.delegate && [self.delegate respondsToSelector:@selector(YYStockView: selectedModel:)]) {
@@ -395,30 +407,41 @@
 }
 
 - (void)event_pinchAction:(UIPinchGestureRecognizer *)pinch {
+    
+    //1.获取缩放倍数
     static CGFloat oldScale = 1.0f;
     CGFloat difValue = pinch.scale - oldScale;
+    
     if(ABS(difValue) > YYStockLineScaleBound) {
-        CGFloat oldKLineWidth = [YYStockVariable lineWidth];
-        
-//        NSInteger oldNeedDrawStartIndex = [self startIndex];
-        NSLog(@"原来的index%ld", [self startIndex]);
-        [YYStockVariable setLineWith:oldKLineWidth * (difValue > 0 ? (1 + YYStockLineScaleFactor) : (1 - YYStockLineScaleFactor))];
-        oldScale = pinch.scale;
-        //更新MainView的宽度
-        [self updateScrollViewContentWidth];
-        
         if( pinch.numberOfTouches == 2 ) {
+            
+            //2.获取捏合中心点 -> 捏合中心点距离scrollviewcontent左侧的距离
             CGPoint p1 = [pinch locationOfTouch:0 inView:self.stockScrollView];
             CGPoint p2 = [pinch locationOfTouch:1 inView:self.stockScrollView];
-            CGPoint centerPoint = CGPointMake((p1.x+p2.x)/2, (p1.y+p2.y)/2);
-//            NSUInteger oldLeftArrCount = ABS((centerPoint.x - self.stockScrollView.contentOffset.x) - [YYStockVariable lineGap]) / ([YYStockVariable lineGap] + oldKLineWidth);
-            NSUInteger newLeftArrCount = ABS((centerPoint.x - self.stockScrollView.contentOffset.x) - [YYStockVariable lineGap]) / ([YYStockVariable lineGap] + [YYStockVariable lineWidth]);
+            CGFloat centerX = (p1.x+p2.x)/2;
             
-//            self.kLineMainView.pinchStartIndex = oldNeedDrawStartIndex + oldLeftArrCount - newLeftArrCount;
-            //            self.kLineMainView.pinchPoint = centerPoint;
-            NSLog(@"计算得出的index%lu",newLeftArrCount);
+            //3.拿到中心点数据源的index
+            CGFloat oldLeftArrCount = ABS(centerX + [YYStockVariable lineGap]) / ([YYStockVariable lineGap] + [YYStockVariable lineWidth]);
+            
+            //4.缩放重绘
+            CGFloat newLineWidth = [YYStockVariable lineWidth] * (difValue > 0 ? (1 + YYStockLineScaleFactor) : (1 - YYStockLineScaleFactor));
+            [YYStockVariable setLineWith:newLineWidth];
+            [self updateScrollViewContentWidth];
+            
+            //5.计算更新宽度后捏合中心点距离klineView左侧的距离
+            CGFloat newLeftDistance = oldLeftArrCount * [YYStockVariable lineWidth] + (oldLeftArrCount - 1) * [YYStockVariable lineGap];
+            
+            //6.设置scrollview的contentoffset = (5) - (2);
+            if ( self.lineModels.count * newLineWidth + (self.lineModels.count + 1) * [YYStockVariable lineGap] > self.stockScrollView.bounds.size.width ) {
+                CGFloat newOffsetX = newLeftDistance - (centerX - self.stockScrollView.contentOffset.x);
+                self.stockScrollView.contentOffset = CGPointMake(newOffsetX > 0 ? newOffsetX : 0 , self.stockScrollView.contentOffset.y);
+            } else {
+                self.stockScrollView.contentOffset = CGPointMake(0 , self.stockScrollView.contentOffset.y);
+            }
+            //更新contentsize
+            [self updateScrollViewContentWidth];
+            [self setNeedsDisplay];
         }
-        [self setNeedsDisplay];
     }
 }
 

@@ -2,8 +2,8 @@
 //  YYStockDemoTableViewController.m
 //  YYStockDemo
 //
-//  Created by yate1996 on 16/10/17.
-//  Copyright © 2016年 yate1996. All rights reserved.
+//  Created by WillkYang on 16/10/17.
+//  Copyright © 2016年 WillkYang. All rights reserved.
 //
 
 #import "YYStockDemoTableViewController.h"
@@ -12,8 +12,15 @@
 #import "YYFiveRecordModel.h"
 #import "YYLineDataModel.h"
 #import "YYTimeLineModel.h"
+#import "YYStockVariable.h"
 #import "AppServer.h"
 #import "YYStock.h"
+
+#define IS_IPHONE (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
+#define kScreenWidth [UIScreen mainScreen].bounds.size.width
+#define kScreenHeight [UIScreen mainScreen].bounds.size.height
+#define SCREEN_MAX_LENGTH MAX(kScreenWidth,kScreenHeight)
+#define IS_IPHONE_X (IS_IPHONE && SCREEN_MAX_LENGTH == 812.0)
 
 @interface YYStockDemoTableViewController ()<YYStockDataSource>
 
@@ -74,6 +81,8 @@
 }
 
 - (void)initStockView {
+    [YYStockVariable setStockLineWidthArray:@[@6,@6,@6,@6]];
+    
     YYStock *stock = [[YYStock alloc]initWithFrame:self.stockContainerView.frame dataSource:self];
     _stock = stock;
     [self.stockContainerView addSubview:stock.mainView];
@@ -84,7 +93,6 @@
     UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(stock_enterFullScreen:)];
     tap.numberOfTapsRequired = 1;
     [self.stock.containerView addGestureRecognizer:tap];
-    
     [self.stock.containerView.subviews setValue:@0 forKey:@"userInteractionEnabled"];
     
 }
@@ -106,12 +114,17 @@
     
     [AppServer Get:@"day" params:nil success:^(NSDictionary *response) {
         NSMutableArray *array = [NSMutableArray array];
+        __block YYLineDataModel *preModel;
         [response[@"dayhqs"] enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             YYLineDataModel *model = [[YYLineDataModel alloc]initWithDict:obj];
-            [model updateMA:response[@"dayhqs"]];
-            if (model.MA20 > 0) {
-                [array addObject: model];
+            model.preDataModel = preModel;
+            [model updateMA:response[@"dayhqs"] index:idx];
+            NSString *day = [NSString stringWithFormat:@"%@",obj[@"day"]];
+            if ([response[@"dayhqs"] count] % 18 == ([response[@"dayhqs"] indexOfObject:obj] + 1 )%18 ) {
+                model.showDay = [NSString stringWithFormat:@"%@-%@-%@",[day substringToIndex:4],[day substringWithRange:NSMakeRange(4, 2)],[day substringWithRange:NSMakeRange(6, 2)]];
             }
+            [array addObject: model];
+            preModel = model;
         }];
         [self.stockDatadict setObject:array forKey:@"dayhqs"];
     } fail:^(NSDictionary *info) {
@@ -168,9 +181,11 @@
         make.edges.equalTo(self.fullScreenView);
     }];
     [self.stockContainerView addSubview:self.stock.mainView];
-    [self.stock.mainView mas_makeConstraints:^(MASConstraintMaker *make) {
+    [self.stock.mainView mas_remakeConstraints:^(MASConstraintMaker *make) {
         make.edges.equalTo(self.stockContainerView);
     }];
+    [self.stock.mainView layoutSubviews];
+    [YYStockVariable setStockLineWidthArray:@[@6,@6,@6,@6]];
     [self.stock draw];
     
     [UIView animateWithDuration:0.3 animations:^{
@@ -201,11 +216,18 @@
         make.height.equalTo(window.mas_width);
         make.center.equalTo(window);
     }];
+
+    
     [[UIApplication sharedApplication] setStatusBarHidden:YES];
     
     [fullScreenView addSubview:self.stock.mainView];
-    [self.stock.mainView mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.left.right.bottom.equalTo(fullScreenView);
+    [self.stock.mainView mas_remakeConstraints:^(MASConstraintMaker *make) {
+        if (IS_IPHONE_X) {
+            make.left.bottom.equalTo(fullScreenView).offset(30);
+        } else {
+            make.left.bottom.equalTo(fullScreenView);
+        }
+        make.right.bottom.equalTo(fullScreenView);
         make.top.equalTo(fullScreenView).offset(66);
     }];
     fullScreenView.transform = CGAffineTransformMakeRotation(M_PI_2);
